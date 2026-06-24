@@ -9,6 +9,7 @@ export interface User {
   username: string;
   name: string;
   role: UserRole;
+  cargo?: string;
   password?: string;
   createdAt: string;
 }
