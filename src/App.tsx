@@ -166,7 +166,7 @@ export default function App() {
   };
 
   // Handle bulk range/interval updates of estacas atomically and chunked for safety
-  const handleToggleRange = async (startEstaca: number, endEstaca: number, activityId: string, newValue: boolean) => {
+  const handleToggleRange = async (startEstaca: number, endEstaca: number, activityId: string, newValue: 'completed' | 'executing') => {
     if (!currentUser) return;
 
     const timestamp = new Date().toISOString();
@@ -197,9 +197,10 @@ export default function App() {
             progressByGroup[groupId] = { cells: {} };
           }
 
+          const isCompleted = newValue === 'completed';
           progressByGroup[groupId].cells[cellKey] = {
-            status: newValue ? 'completed' : 'none',
-            completed: newValue,
+            status: newValue,
+            completed: isCompleted,
             updatedBy: currentUser.name,
             updatedAt: timestamp
           };
@@ -211,8 +212,8 @@ export default function App() {
             estaca: num,
             activityId,
             activityName,
-            oldValue: newValue ? 'none' : 'completed',
-            newValue: newValue ? 'completed' : 'none',
+            oldValue: 'unknown',
+            newValue: newValue,
             updatedBy: currentUser.name,
             timestamp
           });
