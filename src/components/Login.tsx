@@ -45,6 +45,7 @@ export default function Login({ onLogin }: LoginProps) {
             username: userData.username,
             name: userData.name,
             role: userData.role,
+            cargo: userData.cargo,
             createdAt: userData.createdAt,
           });
         } else {
@@ -59,6 +60,7 @@ export default function Login({ onLogin }: LoginProps) {
             password: 'admin',
             name: 'Carlos César (Admin)',
             role: 'admin' as UserRole,
+            cargo: 'Gerente Geral',
             createdAt: new Date().toISOString()
           };
 
@@ -72,6 +74,7 @@ export default function Login({ onLogin }: LoginProps) {
             username: defaultAdmin.username,
             name: defaultAdmin.name,
             role: defaultAdmin.role,
+            cargo: defaultAdmin.cargo,
             createdAt: defaultAdmin.createdAt,
           });
         } else {
