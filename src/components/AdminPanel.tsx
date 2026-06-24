@@ -10,6 +10,7 @@ export default function AdminPanel() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('operator');
+  const [cargo, setCargo] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export default function AdminPanel() {
         name: cleanName,
         password: password.trim(),
         role,
+        cargo: cargo.trim() || (role === 'admin' ? 'Gerente Geral' : 'Apontador'),
         createdAt: new Date().toISOString()
       };
 
@@ -72,6 +74,7 @@ export default function AdminPanel() {
       setUsername('');
       setPassword('');
       setRole('operator');
+      setCargo('');
     } catch (err) {
       setError('Erro ao criar usuário no banco de dados.');
       console.error(err);
@@ -170,7 +173,21 @@ export default function AdminPanel() {
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-              Cargo / Permissão
+              Cargo / Função do Usuário (Texto Livre)
+            </label>
+            <input
+              type="text"
+              required
+              value={cargo}
+              onChange={(e) => setCargo(e.target.value)}
+              placeholder="Ex: Apontador de Campo, Engenheiro, Encarregado"
+              className="block w-full px-3 py-2.5 bg-slate-950 border border-slate-850 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 placeholder-slate-700"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Permissão de Acesso (Sistema)
             </label>
             <select
               value={role}
@@ -216,7 +233,7 @@ export default function AdminPanel() {
                     Nome / Usuário
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Permissão
+                    Cargo / Permissão
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Senha
@@ -234,12 +251,15 @@ export default function AdminPanel() {
                       <div className="text-xs text-slate-500">@{u.username}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                      <div className="text-sm font-bold text-white">
+                        {u.cargo || (u.role === 'admin' ? 'Gerente Geral' : 'Apontador')}
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 mt-1 rounded-full text-[10px] font-bold border ${
                         u.role === 'admin'
                           ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                           : 'bg-blue-500/10 text-blue-450 border-blue-500/20'
                       }`}>
-                        {u.role === 'admin' ? 'Gerente' : 'Apontador'}
+                        {u.role === 'admin' ? 'Acesso Gerente' : 'Acesso Apontador'}
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-300 font-mono">
