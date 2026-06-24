@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account managed by admin",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "operator"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["username", "password", "name", "role"]
+    },
+    "ProgressGroup": {
+      "title": "ProgressGroup",
+      "description": "A group of 100 stations containing completed activities",
+      "type": "object",
+      "properties": {
+        "cells": {
+          "type": "object",
+          "description": "Map from estaca_activity to progress detail"
+        }
+      },
+      "required": ["cells"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Historical audit log of edits made to the station grid",
+      "type": "object",
+      "properties": {
+        "estaca": { "type": "integer" },
+        "activityId": { "type": "string" },
+        "activityName": { "type": "string" },
+        "oldValue": { "type": "boolean" },
+        "newValue": { "type": "boolean" },
+        "updatedBy": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["estaca", "activityId", "activityName", "newValue", "updatedBy", "timestamp"]
+    }
+  },
+  "firestore": {
+    "users/{username}": {
+      "schema": "User",
+      "description": "Application users"
+    },
+    "progress/{groupId}": {
+      "schema": "ProgressGroup",
+      "description": "Progress mapping grouped in blocks of 100 stations"
+    },
+    "audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Detailed history of grid modifications"
+    }
+  }
+}
