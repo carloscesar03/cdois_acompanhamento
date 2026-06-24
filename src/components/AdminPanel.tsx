@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { User, UserRole } from '../types';
-import { UserPlus, Trash2, Key, Users, ShieldAlert, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { UserPlus, Trash2, Key, Users, ShieldAlert, AlertCircle, CheckCircle, RefreshCw, Pencil, X } from 'lucide-react';
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -55,20 +56,52 @@ export default function AdminPanel() {
     setSubmitting(true);
 
     try {
-      // Check if username is taken
-      const userRef = doc(db, 'users', cleanUsername);
-      const newUser: User = {
-        username: cleanUsername,
-        name: cleanName,
-        password: password.trim(),
-        role,
-        cargo: cargo.trim() || (role === 'admin' ? 'Gerente Geral' : 'Apontador'),
-        createdAt: new Date().toISOString()
-      };
+      if (editingUser) {
+        // Checking if the new username is already used by another user
+        if (cleanUsername !== editingUser.username && users.some(u => u.username === cleanUsername)) {
+          setError('Este nome de usuário já está sendo utilizado por outro usuário.');
+          setSubmitting(false);
+          return;
+        }
 
-      await setDoc(userRef, newUser);
-      
-      setSuccess(`Usuário "${cleanName}" cadastrado com sucesso!`);
+        // If username changed, delete old doc first
+        if (cleanUsername !== editingUser.username) {
+          await deleteDoc(doc(db, 'users', editingUser.username));
+        }
+
+        const updatedUser: User = {
+          username: cleanUsername,
+          name: cleanName,
+          password: password.trim(),
+          role,
+          cargo: cargo.trim() || (role === 'admin' ? 'Gerente Geral' : 'Apontador'),
+          createdAt: editingUser.createdAt || new Date().toISOString()
+        };
+
+        await setDoc(doc(db, 'users', cleanUsername), updatedUser);
+        setSuccess(`Usuário "${cleanName}" atualizado com sucesso!`);
+        setEditingUser(null);
+      } else {
+        // Check if username is taken
+        if (users.some(u => u.username === cleanUsername)) {
+          setError('Este nome de usuário já está cadastrado.');
+          setSubmitting(false);
+          return;
+        }
+
+        const newUser: User = {
+          username: cleanUsername,
+          name: cleanName,
+          password: password.trim(),
+          role,
+          cargo: cargo.trim() || (role === 'admin' ? 'Gerente Geral' : 'Apontador'),
+          createdAt: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, 'users', cleanUsername), newUser);
+        setSuccess(`Usuário "${cleanName}" cadastrado com sucesso!`);
+      }
+
       // Reset fields
       setName('');
       setUsername('');
@@ -76,11 +109,33 @@ export default function AdminPanel() {
       setRole('operator');
       setCargo('');
     } catch (err) {
-      setError('Erro ao criar usuário no banco de dados.');
+      setError(editingUser ? 'Erro ao atualizar usuário.' : 'Erro ao criar usuário no banco de dados.');
       console.error(err);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleStartEdit = (user: User) => {
+    setEditingUser(user);
+    setName(user.name);
+    setUsername(user.username);
+    setPassword(user.password || '');
+    setRole(user.role);
+    setCargo(user.cargo || '');
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    setName('');
+    setUsername('');
+    setPassword('');
+    setRole('operator');
+    setCargo('');
+    setError(null);
+    setSuccess(null);
   };
 
   const handleDeleteUser = async (targetUsername: string, targetName: string) => {
@@ -104,14 +159,25 @@ export default function AdminPanel() {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-6 font-sans grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Left Form: Create User */}
+      {/* Left Form: Create / Edit User */}
       <div className="lg:col-span-1 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-6 shadow-2xl backdrop-blur-md h-fit">
         <h2 className="text-lg font-light text-white flex items-center gap-2 mb-4">
-          <UserPlus className="h-5 w-5 text-blue-500" />
-          Cadastrar <span className="font-bold">Usuário</span>
+          {editingUser ? (
+            <>
+              <Pencil className="h-5 w-5 text-amber-500" />
+              Editar <span className="font-bold">Usuário</span>
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-5 w-5 text-blue-500" />
+              Cadastrar <span className="font-bold">Usuário</span>
+            </>
+          )}
         </h2>
         <p className="text-xs text-slate-500 mb-6">
-          Crie credenciais de acesso para operadores de campo ou gestores.
+          {editingUser
+            ? `Editando o usuário @${editingUser.username}. Modifique os campos desejados.`
+            : 'Crie credenciais de acesso para operadores de campo ou gestores.'}
         </p>
 
         <form onSubmit={handleCreateUser} className="space-y-4">
@@ -199,13 +265,30 @@ export default function AdminPanel() {
             </select>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-550 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:opacity-50 cursor-pointer transition"
-          >
-            {submitting ? 'Cadastrando...' : 'Cadastrar Usuário'}
-          </button>
+          <div className="flex gap-2 pt-2">
+            {editingUser && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex-1 flex justify-center py-3 px-4 border border-slate-800 hover:bg-slate-850 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={submitting}
+              className={`flex-1 flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white transition ${
+                editingUser
+                  ? 'bg-amber-600 hover:bg-amber-550 focus:outline-none focus:ring-2 focus:ring-amber-500/40'
+                  : 'bg-blue-600 hover:bg-blue-550 focus:outline-none focus:ring-2 focus:ring-blue-500/40'
+              } disabled:opacity-50 cursor-pointer`}
+            >
+              {submitting
+                ? editingUser ? 'Salvando...' : 'Cadastrando...'
+                : editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -269,20 +352,29 @@ export default function AdminPanel() {
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {u.username !== 'admin' ? (
+                      <div className="flex items-center justify-end gap-3">
                         <button
-                          onClick={() => handleDeleteUser(u.username, u.name)}
-                          className="text-red-400 hover:text-red-300 transition cursor-pointer"
-                          title="Excluir Usuário"
+                          onClick={() => handleStartEdit(u)}
+                          className="text-amber-400 hover:text-amber-300 transition cursor-pointer"
+                          title="Editar Usuário"
                         >
-                          <Trash2 className="h-4 w-4 inline" />
+                          <Pencil className="h-4 w-4" />
                         </button>
-                      ) : (
-                        <span className="text-xs text-slate-650 italic flex items-center justify-end gap-1 select-none">
-                          <ShieldAlert className="h-3.5 w-3.5 text-slate-600" />
-                          Protegido
-                        </span>
-                      )}
+                        {u.username !== 'admin' ? (
+                          <button
+                            onClick={() => handleDeleteUser(u.username, u.name)}
+                            className="text-red-400 hover:text-red-300 transition cursor-pointer"
+                            title="Excluir Usuário"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-600 italic flex items-center gap-1 select-none" title="Usuário principal do sistema">
+                            <ShieldAlert className="h-3 w-3 text-slate-650" />
+                            Protegido
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
