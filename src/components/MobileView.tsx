@@ -12,7 +12,7 @@ interface MobileViewProps {
     nextStatus: 'none' | 'executing' | 'completed',
     currentStatus?: 'none' | 'executing' | 'completed'
   ) => Promise<void>;
-  onToggleRange: (startEstaca: number, endEstaca: number, activityId: string, newValue: boolean) => Promise<void>;
+  onToggleRange: (startEstaca: number, endEstaca: number, activityId: string, newValue: 'completed' | 'executing') => Promise<void>;
 }
 
 export default function MobileView({
@@ -30,7 +30,7 @@ export default function MobileView({
   const [rangeStart, setRangeStart] = useState<number>(0);
   const [rangeEnd, setRangeEnd] = useState<number>(0);
   const [rangeActivity, setRangeActivity] = useState<string>(ACTIVITIES[0]?.id || '');
-  const [rangeValue, setRangeValue] = useState<boolean>(true);
+  const [rangeValue, setRangeValue] = useState<'completed' | 'executing'>('completed');
   const [bulkUpdating, setBulkUpdating] = useState<boolean>(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export default function MobileView({
       return;
     }
     const actName = ACTIVITIES.find(a => a.id === rangeActivity)?.name || rangeActivity;
-    const statusStr = rangeValue ? 'Concluído' : 'Não executado';
+    const statusStr = rangeValue === 'completed' ? 'Concluído' : 'Em execução';
     const confirmMessage = `Deseja realmente alterar o status para "${statusStr}" de todas as estacas no intervalo de ${rangeStart} a ${rangeEnd} para a atividade "${actName}"?`;
     if (!window.confirm(confirmMessage)) {
       return;
@@ -265,9 +265,9 @@ export default function MobileView({
             <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-850">
               <button
                 type="button"
-                onClick={() => setRangeValue(true)}
+                onClick={() => setRangeValue('completed')}
                 className={`py-1.5 text-xs font-bold rounded-lg transition ${
-                  rangeValue
+                  rangeValue === 'completed'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
@@ -276,14 +276,14 @@ export default function MobileView({
               </button>
               <button
                 type="button"
-                onClick={() => setRangeValue(false)}
+                onClick={() => setRangeValue('executing')}
                 className={`py-1.5 text-xs font-bold rounded-lg transition ${
-                  !rangeValue
-                    ? 'bg-slate-800 text-slate-300 shadow-sm'
+                  rangeValue === 'executing'
+                    ? 'bg-amber-600 text-white shadow-sm shadow-amber-500/10'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                Não executado
+                Em execução
               </button>
             </div>
           </div>
